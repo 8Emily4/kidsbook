@@ -1,0 +1,52 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800;900&family=Gowun+Dodum&family=Gaegu:wght@400;700&display=swap');
+
+@theme {
+  --font-sans: "Lexend", "Gowun Dodum", ui-sans-serif, system-ui, sans-serif;
+  --font-handwriting: "Gaegu", cursive;
+  
+  --color-primary: #005f9b;
+  --color-on-primary: #ffffff;
+  --color-primary-container: #56aefe;
+  --color-on-primary-container: #002c4c;
+  
+  --color-secondary: #0c6a24;
+  --color-on-secondary: #ffffff;
+  --color-secondary-container: #9ff79f;
+  --color-on-secondary-container: #005f1d;
+  
+  --color-tertiary: #705900;
+  --color-on-tertiary: #ffffff;
+  --color-tertiary-container: #fdd34d;
+  --color-on-tertiary-container: #5c4900;
+  
+  --color-surface: #fff6dc;
+  --color-on-surface: #372e00;
+  --color-on-surface-variant: #675b24;
+  --color-surface-container-low: #fff1b9;
+  --color-surface-container: #fbe897;
+  --color-surface-container-high: #f6e38d;
+  --color-surface-container-highest: #f1dd82;
+  --color-surface-container-lowest: #ffffff;
+  --color-outline-variant: #bcad6d;
+}
+
+@layer base {
+  body {
+    @apply bg-surface text-on-surface font-sans antialiased;
+  }
+}
+
+@layer utilities {
+  .bounce-active:active {
+    @apply scale-95 transition-transform;
+  }
+  
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
