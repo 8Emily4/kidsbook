@@ -5,6 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import confetti from 'canvas-confetti';
 import { 
   Settings, 
   Home, 
@@ -1349,6 +1350,8 @@ export default function App() {
   };
 
   const handleSavePages = (bookId: string, dateStr: string, pages: number) => {
+    let shouldCelebrate = false;
+
     setBooks(prev => prev.map(b => {
       if (b.id !== bookId) return b;
       
@@ -1365,12 +1368,27 @@ export default function App() {
         ? Math.min(Math.round((totalRead / b.totalPages) * 100), 100) 
         : 0;
       
+      // Celebrate if it just reached 100%
+      if (newProgress === 100 && (b.progress || 0) < 100) {
+        shouldCelebrate = true;
+      }
+
       return { 
         ...b, 
         readingLog: newLog,
         progress: newProgress
       };
     }));
+
+    if (shouldCelebrate) {
+      confetti({
+        particleCount: 150,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#FFD700', '#FFA500', '#FF4500', '#FFFFFF', '#6750A4'],
+        scalar: 1.2
+      });
+    }
   };
 
   const handleResetData = () => {
