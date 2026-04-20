@@ -665,33 +665,44 @@ const MedalIcon = ({ tier, size = 52 }: { tier: string, size?: number }) => {
       height={size} 
       viewBox="0 0 24 24" 
       fill="none" 
-      stroke="currentColor" 
-      strokeWidth="1.5" 
-      strokeLinecap="round" 
-      strokeLinejoin="round"
+      xmlns="http://www.w3.org/2000/svg"
       className="drop-shadow-sm"
     >
-      {/* Ribbon */}
+      {/* V-Shaped Ribbon - Separate Left and Right bands for hollow effect */}
       <path 
-        d="M7.21 15 2.66 7.14a2 2 0 0 1 .13-2.2L4.4 2.8A2 2 0 0 1 6.1 2h11.8a2 2 0 0 1 1.7.8l1.61 2.14a2 2 0 0 1 .13 2.2L16.79 15" 
+        d="M12 14.5L5 2H9L12 9L15 2H19L12 14.5Z" 
         fill={ribbonColors[tier] || "#ccc"}
-        stroke="rgba(0,0,0,0.1)"
+        stroke="rgba(0,0,0,0.15)"
+        strokeWidth="0.5"
       />
-      {/* Medal Circle */}
+      
+      {/* Medal Body */}
       <circle 
         cx="12" 
         cy="15" 
-        r="5" 
+        r="6" 
         fill={medalGradients[tier] || "#999"}
         stroke="rgba(255,255,255,0.4)"
+        strokeWidth="1"
       />
-      {/* Medal Inner Shine */}
+      
+      {/* Medal Border/Detail */}
       <circle 
-        cx="11" 
-        cy="14" 
+        cx="12" 
+        cy="15" 
+        r="4.5" 
+        fill="none" 
+        stroke="rgba(0,0,0,0.1)" 
+        strokeWidth="0.5"
+      />
+
+      {/* Shine effect */}
+      <circle 
+        cx="10.5" 
+        cy="13.5" 
         r="2" 
-        fill="rgba(255,255,255,0.3)" 
-        stroke="none"
+        fill="white" 
+        fillOpacity="0.25"
       />
     </svg>
   );
