@@ -522,12 +522,37 @@ const DashboardView = ({
 
     {/* Badges */}
     <section className="space-y-6">
-      <h3 className="text-2xl font-black text-on-surface tracking-tight">최근 획득 배지</h3>
-      <div className="flex gap-6 overflow-x-auto pb-6 no-scrollbar">
-        {[1, 2, 3, 4, 5].map((i) => (
-          <div key={i} className={`shrink-0 w-28 h-28 bg-surface-container-low rounded-full flex items-center justify-center border-4 border-white shadow-md ${i > 1 ? 'opacity-50 grayscale' : ''}`}>
-            <Medal size={48} className={i === 1 ? 'text-secondary' : 'text-on-surface-variant'} fill={i === 1 ? 'currentColor' : 'none'} />
-          </div>
+      <div className="flex justify-between items-center">
+        <h3 className="text-2xl font-black text-on-surface tracking-tight">최근 획득 배지</h3>
+        <button className="text-primary/60 font-bold text-sm">모두 보기</button>
+      </div>
+      <div className="flex gap-8 overflow-x-auto pb-6 no-scrollbar px-2">
+        {BADGES.map((badge) => (
+          <motion.div 
+            key={badge.id} 
+            whileHover={{ y: -5 }}
+            className="flex flex-col items-center gap-3 shrink-0"
+          >
+            <div className={`
+              relative w-28 h-28 rounded-full flex items-center justify-center border-4 border-white shadow-xl transition-all
+              ${TIER_STYLES[badge.tier]}
+              ${badge.isLocked ? 'opacity-40 grayscale scale-95' : 'hover:scale-110 active:scale-95'}
+            `}>
+              <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-white/20 to-transparent pointer-events-none"></div>
+              <Medal size={52} fill="currentColor" strokeWidth={1.5} />
+              
+              {badge.isLocked && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/10 rounded-full">
+                  <div className="bg-white/90 p-2 rounded-full shadow-md">
+                    <Plus size={20} className="text-on-surface-variant rotate-45" />
+                  </div>
+                </div>
+              )}
+            </div>
+            <span className={`font-black text-base ${badge.isLocked ? 'text-on-surface-variant/40' : 'text-on-surface'}`}>
+              {badge.name}
+            </span>
+          </motion.div>
         ))}
       </div>
     </section>
@@ -600,6 +625,22 @@ const QUIZ_QUESTIONS = [
     correctAnswer: 'C'
   }
 ];
+
+const BADGES = [
+  { id: 1, name: '첫 걸음', tier: 'bronze', isLocked: false },
+  { id: 2, name: '독서 친구', tier: 'silver', isLocked: false },
+  { id: 3, name: '페이지 마스터', tier: 'gold', isLocked: true },
+  { id: 4, name: '명예의 전당', tier: 'platinum', isLocked: true },
+  { id: 5, name: '독서 왕', tier: 'master', isLocked: true },
+];
+
+const TIER_STYLES: Record<string, string> = {
+  bronze: "bg-gradient-to-br from-[#A0522D] via-[#CD7F32] to-[#8B4513] text-[#F5DEB3] border-[#743A14]/50 shadow-[#A0522D]/20",
+  silver: "bg-gradient-to-br from-[#71706E] via-[#C0C0C0] to-[#E5E4E2] text-[#F5F5F5] border-[#4A4A4A]/30 shadow-[#C0C0C0]/20",
+  gold: "bg-gradient-to-br from-[#BF953F] via-[#FCF6BA] to-[#B38728] text-[#FFF8E1] border-[#8C6D1F]/40 shadow-[#BF953F]/20",
+  platinum: "bg-gradient-to-br from-[#E5E4E2] via-[#F8F8F8] to-[#D1D1D1] text-[#2C3E50] border-[#A0A0A0]/30 shadow-[#E5E4E2]/20",
+  master: "bg-gradient-to-br from-[#8E2DE2] to-[#4A00E0] text-white border-[#3F00B5]/40 shadow-[0_4px_15px_rgba(142,45,226,0.4)]"
+};
 
 const QuizView = ({ onComplete }: { onComplete: (score: number) => void }) => {
   const [currentIdx, setCurrentIdx] = useState(0);
