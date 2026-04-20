@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Settings, 
@@ -141,6 +141,7 @@ const SettingsModal = ({
   setNickname: (n: string) => void;
   profileImage: string;
   setProfileImage: (url: string) => void;
+  onResetData: () => void;
 }) => {
   const [tempNickname, setTempNickname] = useState(nickname);
   const [tempImage, setTempImage] = useState(profileImage);
@@ -221,6 +222,18 @@ const SettingsModal = ({
             className="w-full bg-primary text-white py-4 rounded-2xl font-bold text-lg shadow-lg hover:bg-primary-dim transition-colors bounce-active"
           >
             저장하기
+          </button>
+
+          <button 
+            onClick={() => {
+              if (window.confirm('모든 기록이 사라져요! 정말 초기화할까요?')) {
+                onResetData();
+                onClose();
+              }
+            }}
+            className="w-full mt-4 text-on-surface-variant hover:text-red-500 font-bold text-sm transition-colors"
+          >
+            기록 모두 초기화하기
           </button>
         </div>
       </motion.div>
@@ -1264,13 +1277,34 @@ export default function App() {
   const [view, setView] = useState<View>('home');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isAddBookOpen, setIsAddBookOpen] = useState(false);
-  const [profileImage, setProfileImage] = useState('https://picsum.photos/seed/mascot/200/200');
-  const [books, setBooks] = useState<Book[]>(initialBooks);
-  const [selectedLogBook, setSelectedLogBook] = useState<Book | null>(null);
-  const [profile, setProfile] = useState<UserProfile>({
-    nickname: '꼬마',
-    points: 1950
+  const [profile, setProfile] = useState<UserProfile>(() => {
+    const saved = localStorage.getItem('kidsbook-profile');
+    return saved ? JSON.parse(saved) : { nickname: '꼬마', points: 1950 };
   });
+
+  const [profileImage, setProfileImage] = useState(() => {
+    return localStorage.getItem('kidsbook-profile-image') || 'https://picsum.photos/seed/mascot/200/200';
+  });
+
+  const [books, setBooks] = useState<Book[]>(() => {
+    const saved = localStorage.getItem('kidsbook-books');
+    return saved ? JSON.parse(saved) : initialBooks;
+  });
+
+  const [selectedLogBook, setSelectedLogBook] = useState<Book | null>(null);
+
+  // Persistence effects
+  useEffect(() => {
+    localStorage.setItem('kidsbook-profile', JSON.stringify(profile));
+  }, [profile]);
+
+  useEffect(() => {
+    localStorage.setItem('kidsbook-profile-image', profileImage);
+  }, [profileImage]);
+
+  useEffect(() => {
+    localStorage.setItem('kidsbook-books', JSON.stringify(books));
+  }, [books]);
 
   const handleAddBook = (book: Book) => {
     setBooks(prev => [book, ...prev]);
@@ -1280,14 +1314,33 @@ export default function App() {
   const handleSavePages = (bookId: string, dateStr: string, pages: number) => {
     setBooks(prev => prev.map(b => {
       if (b.id !== bookId) return b;
-      const log = { ...(b.readingLog || {}) };
+      
+      const newLog = { ...(b.readingLog || {}) };
       if (pages > 0) {
-        log[dateStr] = pages;
+        newLog[dateStr] = pages;
       } else {
-        delete log[dateStr];
+        delete newLog[dateStr];
       }
-      return { ...b, readingLog: log };
+      
+      // Calculate new progress
+      const totalRead = Object.values(newLog).reduce((sum, p) => sum + p, 0);
+      const newProgress = b.totalPages > 0 
+        ? Math.min(Math.round((totalRead / b.totalPages) * 100), 100) 
+        : 0;
+      
+      return { 
+        ...b, 
+        readingLog: newLog,
+        progress: newProgress
+      };
     }));
+  };
+
+  const handleResetData = () => {
+    localStorage.clear();
+    setProfile({ nickname: '꼬마', points: 0 });
+    setProfileImage('https://picsum.photos/seed/mascot/200/200');
+    setBooks(initialBooks);
   };
 
   return (
@@ -1350,6 +1403,7 @@ export default function App() {
         setNickname={(n) => setProfile(prev => ({ ...prev, nickname: n }))}
         profileImage={profileImage}
         setProfileImage={setProfileImage}
+        onResetData={handleResetData}
       />
 
       <AddBookModal
