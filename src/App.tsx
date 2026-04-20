@@ -543,7 +543,151 @@ const DashboardView = ({
   );
 };
 
-const QuizView = () => (
+const QUIZ_QUESTIONS = [
+  {
+    id: 1,
+    question: "해리포터가 처음으로 받은 빗자루의 이름은 무엇인가요?",
+    options: [
+      { id: 'A', text: '님부스 2000' },
+      { id: 'B', text: '파이어볼트' },
+      { id: 'C', text: '클린스윕' },
+      { id: 'D', text: '혜성' }
+    ],
+    correctAnswer: 'A'
+  },
+  {
+    id: 2,
+    question: "아기돼지 삼형제 중 셋째 돼지가 지은 집의 재료는 무엇인가요?",
+    options: [
+      { id: 'A', text: '지푸라기' },
+      { id: 'B', text: '나무' },
+      { id: 'C', text: '벽돌' },
+      { id: 'D', text: '얼음' }
+    ],
+    correctAnswer: 'C'
+  },
+  {
+    id: 3,
+    question: "피노키오의 코는 거짓말을 하면 어떻게 되나요?",
+    options: [
+      { id: 'A', text: '짧아진다' },
+      { id: 'B', text: '길어진다' },
+      { id: 'C', text: '색깔이 변한다' },
+      { id: 'D', text: '재채기를 한다' }
+    ],
+    correctAnswer: 'B'
+  },
+  {
+    id: 4,
+    question: "이상한 나라의 앨리스가 따라간 동물의 이름은 무엇인가요?",
+    options: [
+      { id: 'A', text: '시계토끼' },
+      { id: 'B', text: '체셔고양이' },
+      { id: 'C', text: '하트여왕' },
+      { id: 'D', text: '미친 모자장수' }
+    ],
+    correctAnswer: 'A'
+  },
+  {
+    id: 5,
+    question: "신데렐라가 유리구두를 벗겨두고 와야 했던 시간은 언제인가요?",
+    options: [
+      { id: 'A', text: '밤 10시' },
+      { id: 'B', text: '밤 11시' },
+      { id: 'C', text: '밤 12시' },
+      { id: 'D', text: '새벽 1시' }
+    ],
+    correctAnswer: 'C'
+  }
+];
+
+const QuizView = ({ onComplete }: { onComplete: (score: number) => void }) => {
+  const [currentIdx, setCurrentIdx] = useState(0);
+  const [score, setScore] = useState(0);
+  const [isFinished, setIsFinished] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null);
+
+  const currentQ = QUIZ_QUESTIONS[currentIdx];
+
+  const handleAnswer = (id: string) => {
+    if (selectedId) return;
+
+    setSelectedId(id);
+    const isCorrect = id === currentQ.correctAnswer;
+    setFeedback(isCorrect ? 'correct' : 'wrong');
+
+    if (isCorrect) {
+      setScore(prev => prev + 1);
+      confetti({
+        particleCount: 40,
+        spread: 40,
+        origin: { y: 0.7 },
+        colors: ['#6750A4', '#FFD700']
+      });
+    }
+
+    setTimeout(() => {
+      if (currentIdx < QUIZ_QUESTIONS.length - 1) {
+        setCurrentIdx(prev => prev + 1);
+        setSelectedId(null);
+        setFeedback(null);
+      } else {
+        setIsFinished(true);
+        onComplete(score + (isCorrect ? 1 : 0));
+        
+        if (score + (isCorrect ? 1 : 0) === QUIZ_QUESTIONS.length) {
+          confetti({
+            particleCount: 200,
+            spread: 100,
+            origin: { y: 0.5 },
+            colors: ['#6750A4', '#FFD700', '#B3261E']
+          });
+        }
+      }
+    }, 1500);
+  };
+
+  if (isFinished) {
+    const totalPoints = score * 100;
+    return (
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="flex flex-col items-center justify-center py-12 space-y-8"
+      >
+        <div className="w-64 h-64 bg-primary-container/30 rounded-full flex items-center justify-center shadow-inner relative overflow-hidden">
+          <motion.div 
+            animate={{ rotate: 360 }}
+            transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+            className="absolute inset-0 border-4 border-dashed border-primary/20 rounded-full"
+          />
+          <Medal size={120} className="text-primary" />
+        </div>
+
+        <div className="text-center space-y-4">
+          <h2 className="text-5xl font-black text-on-surface">퀴즈 완료!</h2>
+          <p className="text-2xl text-on-surface-variant font-bold">
+            {QUIZ_QUESTIONS.length}문제 중 {score}개를 맞혔어요!
+          </p>
+        </div>
+
+        <div className="bg-secondary-container/30 p-8 rounded-[2.5rem] border-2 border-white shadow-xl text-center w-full max-w-sm">
+          <p className="text-secondary font-black text-lg mb-2">획득한 포인트</p>
+          <p className="text-6xl font-black text-primary">+{totalPoints}</p>
+        </div>
+
+        <button 
+          onClick={() => window.location.reload()}
+          className="bg-primary text-white px-12 py-5 rounded-2xl font-black text-xl shadow-xl hover:scale-105 transition-all active:scale-95"
+        >
+          메인으로 돌아가기
+        </button>
+      </motion.div>
+    );
+  }
+
+  return (
   <motion.div 
     initial={{ opacity: 0, x: 20 }}
     animate={{ opacity: 1, x: 0 }}
@@ -554,11 +698,14 @@ const QuizView = () => (
     <div className="mb-10">
       <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-6 shadow-[0_8px_32px_rgba(55,46,0,0.06)] border border-white">
         <div className="flex justify-between items-end mb-3 px-2">
-          <span className="font-bold text-xl text-primary">질문 4 / 10</span>
-          <span className="font-bold text-xl text-secondary">800 점수</span>
+          <span className="font-bold text-xl text-primary">질문 {currentIdx + 1} / {QUIZ_QUESTIONS.length}</span>
+          <span className="font-bold text-xl text-secondary">{score * 100} 점수</span>
         </div>
         <div className="h-6 w-full bg-white/40 rounded-full overflow-hidden p-1 shadow-inner">
-          <div className="h-full bg-gradient-to-r from-primary to-primary-container rounded-full w-[40%] transition-all duration-500 relative">
+          <div 
+            className="h-full bg-gradient-to-r from-primary to-primary-container rounded-full transition-all duration-500 relative"
+            style={{ width: `${((currentIdx + 1) / QUIZ_QUESTIONS.length) * 100}%` }}
+          >
             <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
           </div>
         </div>
@@ -588,36 +735,53 @@ const QuizView = () => (
           <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-tertiary/20 rounded-3xl blur-xl opacity-60 -z-10"></div>
           <div className="bg-white/70 backdrop-blur-xl p-8 rounded-3xl shadow-[0_12px_32px_rgba(55,46,0,0.08)] border border-white">
             <h2 className="font-bold text-on-surface leading-snug text-3xl md:text-4xl">
-              용감한 다람쥐는 왜 '속삭이는 버드나무'에 올라가기로 했나요?
+              {currentQ.question}
             </h2>
           </div>
         </div>
 
         {/* Answer options with glassmorphism */}
         <div className="grid grid-cols-1 gap-4">
-          {[
-            { id: 'A', text: '꼭대기에 있는 황금 도토리를 찾기 위해서' },
-            { id: 'B', text: '심술궂은 오소리를 피해 숨기 위해서' },
-            { id: 'C', text: '대계곡 너머로 지는 노을을 보기 위해서' },
-            { id: 'D', text: '부엉이에게 편지를 전해주기 위해서' },
-          ].map((opt) => (
-            <motion.button 
-              key={opt.id} 
-              whileHover={{ x: 8, scale: 1.02 }}
-              className="group relative flex items-center gap-4 p-5 bg-white/50 backdrop-blur-xl rounded-2xl hover:bg-white/80 transition-all text-left bounce-active border border-white/60 hover:border-primary/30 shadow-[0_4px_16px_rgba(55,46,0,0.04)] hover:shadow-[0_8px_32px_rgba(55,46,0,0.1)]"
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-tertiary/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10 blur-sm"></div>
-              <div className="w-12 h-12 flex-shrink-0 bg-primary/90 backdrop-blur-sm rounded-2xl flex items-center justify-center text-white font-bold text-2xl group-hover:bg-primary group-hover:scale-110 transition-all shadow-md">
-                {opt.id}
-              </div>
-              <span className="font-medium text-on-surface-variant text-xl md:text-2xl group-hover:text-on-surface transition-colors">{opt.text}</span>
-            </motion.button>
-          ))}
+          {currentQ.options.map((opt) => {
+            const isSelected = selectedId === opt.id;
+            const isCorrect = opt.id === currentQ.correctAnswer;
+            
+            let btnClasses = "bg-white/50 border-white/60 shadow-[0_4px_16px_rgba(55,46,0,0.04)]";
+            let circleClasses = "bg-primary/90";
+
+            if (isSelected) {
+              if (feedback === 'correct') {
+                btnClasses = "bg-green-100 border-green-400 shadow-green-200/50";
+                circleClasses = "bg-green-500";
+              } else {
+                btnClasses = "bg-red-100 border-red-400 shadow-red-200/50";
+                circleClasses = "bg-red-500";
+              }
+            } else if (selectedId && isCorrect) {
+              btnClasses = "bg-green-50 border-green-200";
+              circleClasses = "bg-green-400";
+            }
+
+            return (
+              <motion.button 
+                key={opt.id} 
+                onClick={() => handleAnswer(opt.id)}
+                whileHover={!selectedId ? { x: 8, scale: 1.02 } : {}}
+                className={`group relative flex items-center gap-4 p-5 backdrop-blur-xl rounded-2xl transition-all text-left bounce-active border shadow-[0_8px_32px_rgba(55,46,0,0.1)] ${btnClasses}`}
+              >
+                {!selectedId && <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-tertiary/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10 blur-sm"></div>}
+                <div className={`w-12 h-12 flex-shrink-0 backdrop-blur-sm rounded-2xl flex items-center justify-center text-white font-bold text-2xl transition-all shadow-md ${circleClasses}`}>
+                  {opt.id}
+                </div>
+                <span className="font-medium text-on-surface-variant text-xl md:text-2xl group-hover:text-on-surface transition-colors">{opt.text}</span>
+              </motion.button>
+            );
+          })}
         </div>
       </div>
     </div>
-  </motion.div>
-);
+  );
+};
 
 const JournalView = () => (
   <motion.div 
@@ -1414,7 +1578,10 @@ export default function App() {
           )}
           {view === 'quiz' && (
             <motion.div key="quiz">
-              <QuizView />
+              <QuizView onComplete={(score) => {
+                const earned = score * 100;
+                setProfile(prev => ({ ...prev, points: prev.points + earned }));
+              }} />
             </motion.div>
           )}
           {view === 'journal' && (
