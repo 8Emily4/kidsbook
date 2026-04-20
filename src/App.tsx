@@ -780,6 +780,7 @@ const QuizView = ({ onComplete }: { onComplete: (score: number) => void }) => {
         </div>
       </div>
     </div>
+  </motion.div>
   );
 };
 
