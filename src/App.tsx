@@ -539,7 +539,8 @@ const DashboardView = ({
       <Plus size={36} />
     </button>
   </motion.div>
-);
+  );
+};
 
 const QuizView = () => (
   <motion.div 
