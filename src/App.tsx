@@ -539,7 +539,7 @@ const DashboardView = ({
               ${badge.isLocked ? 'opacity-40 grayscale scale-95' : 'hover:scale-110 active:scale-95'}
             `}>
               <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-white/20 to-transparent pointer-events-none"></div>
-              <Medal size={52} fill="currentColor" strokeWidth={1.5} />
+              <MedalIcon tier={badge.tier} size={64} />
               
               {badge.isLocked && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/10 rounded-full">
@@ -640,6 +640,61 @@ const TIER_STYLES: Record<string, string> = {
   gold: "bg-gradient-to-br from-[#BF953F] via-[#FCF6BA] to-[#B38728] text-[#FFF8E1] border-[#8C6D1F]/40 shadow-[#BF953F]/20",
   platinum: "bg-gradient-to-br from-[#E5E4E2] via-[#F8F8F8] to-[#D1D1D1] text-[#2C3E50] border-[#A0A0A0]/30 shadow-[#E5E4E2]/20",
   master: "bg-gradient-to-br from-[#8E2DE2] to-[#4A00E0] text-white border-[#3F00B5]/40 shadow-[0_4px_15px_rgba(142,45,226,0.4)]"
+};
+
+const MedalIcon = ({ tier, size = 52 }: { tier: string, size?: number }) => {
+  const ribbonColors: Record<string, string> = {
+    bronze: "#E53935", // Red
+    silver: "#1E88E5", // Blue
+    gold: "#3949AB",   // Indigo
+    platinum: "#00ACC1", // Teal
+    master: "#FFD700"  // Gold ribbon for Master
+  };
+
+  const medalGradients: Record<string, string> = {
+    bronze: "#CD7F32",
+    silver: "#C0C0C0",
+    gold: "#FFD700",
+    platinum: "#E5E4E2",
+    master: "#9C27B0"
+  };
+
+  return (
+    <svg 
+      width={size} 
+      height={size} 
+      viewBox="0 0 24 24" 
+      fill="none" 
+      stroke="currentColor" 
+      strokeWidth="1.5" 
+      strokeLinecap="round" 
+      strokeLinejoin="round"
+      className="drop-shadow-sm"
+    >
+      {/* Ribbon */}
+      <path 
+        d="M7.21 15 2.66 7.14a2 2 0 0 1 .13-2.2L4.4 2.8A2 2 0 0 1 6.1 2h11.8a2 2 0 0 1 1.7.8l1.61 2.14a2 2 0 0 1 .13 2.2L16.79 15" 
+        fill={ribbonColors[tier] || "#ccc"}
+        stroke="rgba(0,0,0,0.1)"
+      />
+      {/* Medal Circle */}
+      <circle 
+        cx="12" 
+        cy="15" 
+        r="5" 
+        fill={medalGradients[tier] || "#999"}
+        stroke="rgba(255,255,255,0.4)"
+      />
+      {/* Medal Inner Shine */}
+      <circle 
+        cx="11" 
+        cy="14" 
+        r="2" 
+        fill="rgba(255,255,255,0.3)" 
+        stroke="none"
+      />
+    </svg>
+  );
 };
 
 const QuizView = ({ onComplete }: { onComplete: (score: number) => void }) => {
