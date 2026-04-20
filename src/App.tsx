@@ -369,7 +369,23 @@ const AddBookModal = ({
   );
 };
 
-const DashboardView = ({ profile, profileImage, onStartReading }: { profile: UserProfile; profileImage: string; onStartReading: () => void }) => (
+const DashboardView = ({ 
+  profile, 
+  profileImage, 
+  onStartReading,
+  todayPages,
+  dailyGoal
+}: { 
+  profile: UserProfile; 
+  profileImage: string; 
+  onStartReading: () => void;
+  todayPages: number;
+  dailyGoal: number;
+}) => {
+  const percentage = dailyGoal > 0 ? Math.min(Math.round((todayPages / dailyGoal) * 100), 100) : 0;
+  const isGoalMet = percentage >= 100;
+
+  return (
   <motion.div 
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
@@ -383,8 +399,8 @@ const DashboardView = ({ profile, profileImage, onStartReading }: { profile: Use
           안녕, {profile.nickname} 독서가!
         </h2>
         <p className="text-on-surface-variant text-xl leading-relaxed">
-          오늘 15분 동안 책을 읽었어.<br />
-          목표를 달성할 때까지 조금만 더 힘내보자!
+          오늘 지금까지 **{todayPages}쪽**의 책을 읽었어.<br />
+          {isGoalMet ? '우와! 오늘의 목표를 달성했어! 정말 대단해! ✨' : '목표를 달성할 때까지 조금만 더 힘내보자!'}
         </p>
         <div className="mt-8 flex items-center gap-4 justify-center md:justify-start">
           <button 
@@ -417,14 +433,22 @@ const DashboardView = ({ profile, profileImage, onStartReading }: { profile: Use
         <div>
           <div className="flex justify-between items-end mb-5">
             <h3 className="text-2xl font-bold text-primary">오늘의 목표</h3>
-            <span className="text-secondary font-black text-4xl">75%</span>
+            <span className={`font-black text-4xl transition-colors ${isGoalMet ? 'text-tertiary' : 'text-secondary'}`}>
+              {percentage}%
+            </span>
           </div>
-          <div className="w-full h-7 bg-secondary-container/30 rounded-full overflow-hidden">
-            <div className="h-full bg-secondary w-[75%] rounded-full relative">
+          <div className="w-full h-7 bg-secondary-container/30 rounded-full overflow-hidden border border-outline-variant/10 shadow-inner">
+            <motion.div 
+              initial={{ width: 0 }}
+              animate={{ width: `${percentage}%` }}
+              className={`h-full relative rounded-full ${isGoalMet ? 'bg-gradient-to-r from-tertiary to-tertiary-container' : 'bg-secondary'}`}
+            >
               <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
-            </div>
+            </motion.div>
           </div>
-          <p className="mt-5 text-on-surface-variant font-bold text-lg">20분 중 15분 완료</p>
+          <p className="mt-5 text-on-surface-variant font-bold text-lg">
+            {dailyGoal}쪽 중 {todayPages}쪽 완료 {isGoalMet && '🎉'}
+          </p>
         </div>
         <div className="mt-8 flex gap-4">
           <div className="bg-tertiary-container/30 px-5 py-2.5 rounded-full flex items-center gap-2">
@@ -508,7 +532,10 @@ const DashboardView = ({ profile, profileImage, onStartReading }: { profile: Use
     </section>
 
     {/* FAB */}
-    <button className="fixed right-6 bottom-36 bg-gradient-to-br from-tertiary to-tertiary-container text-on-tertiary-container w-16 h-16 rounded-2xl shadow-xl flex items-center justify-center hover:rotate-6 transition-all bounce-active z-40">
+    <button 
+      onClick={onStartReading}
+      className="fixed right-6 bottom-36 bg-gradient-to-br from-tertiary to-tertiary-container text-on-tertiary-container w-16 h-16 rounded-2xl shadow-xl flex items-center justify-center hover:rotate-6 transition-all bounce-active z-40"
+    >
       <Plus size={36} />
     </button>
   </motion.div>
@@ -1293,6 +1320,15 @@ export default function App() {
 
   const [selectedLogBook, setSelectedLogBook] = useState<Book | null>(null);
 
+  const DAILY_GOAL = 50; // Daily pages goal
+
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+  const todayPages = books.reduce((total, book) => {
+    return total + (book.readingLog?.[todayStr] || 0);
+  }, 0);
+
   // Persistence effects
   useEffect(() => {
     localStorage.setItem('kidsbook-profile', JSON.stringify(profile));
@@ -1351,7 +1387,13 @@ export default function App() {
         <AnimatePresence mode="wait">
           {view === 'home' && (
             <motion.div key="home">
-              <DashboardView profile={profile} profileImage={profileImage} onStartReading={() => setIsAddBookOpen(true)} />
+              <DashboardView 
+                profile={profile} 
+                profileImage={profileImage} 
+                onStartReading={() => setIsAddBookOpen(true)}
+                todayPages={todayPages}
+                dailyGoal={DAILY_GOAL}
+              />
             </motion.div>
           )}
           {view === 'quiz' && (
