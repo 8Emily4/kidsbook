@@ -255,6 +255,40 @@ const AddBookModal = ({
   const [author, setAuthor] = useState('');
   const [totalPages, setTotalPages] = useState('');
   const [coverPreview, setCoverPreview] = useState('');
+  
+  // Search states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+
+  const handleSearch = async (query: string) => {
+    setSearchQuery(query);
+    if (query.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=5&langRestrict=ko`);
+      const data = await response.json();
+      setSearchResults(data.items || []);
+    } catch (error) {
+      console.error('Book search failed:', error);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const selectBook = (item: any) => {
+    const info = item.volumeInfo;
+    setTitle(info.title || '');
+    setAuthor(info.authors?.join(', ') || '');
+    setTotalPages(info.pageCount ? String(info.pageCount) : '');
+    setCoverPreview(info.imageLinks?.thumbnail?.replace('http:', 'https:') || '');
+    setSearchResults([]);
+    setSearchQuery('');
+  };
 
   const handleCoverUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -280,6 +314,7 @@ const AddBookModal = ({
     setAuthor('');
     setTotalPages('');
     setCoverPreview('');
+    setSearchQuery('');
     onClose();
   };
 
@@ -290,79 +325,134 @@ const AddBookModal = ({
       <motion.div
         initial={{ scale: 0.9, opacity: 0, y: 20 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
-        className="bg-white/80 backdrop-blur-xl w-full max-w-md rounded-3xl p-8 shadow-2xl relative border border-white"
+        className="bg-white/80 backdrop-blur-xl w-full max-w-lg rounded-[2.5rem] p-8 shadow-2xl relative border border-white max-h-[90vh] overflow-y-auto no-scrollbar"
       >
         <button
           onClick={onClose}
-          className="absolute top-6 right-6 text-on-surface-variant hover:text-on-surface transition-colors"
+          className="absolute top-6 right-6 text-on-surface-variant hover:text-on-surface transition-colors z-20"
         >
           <X size={24} />
         </button>
 
         <div className="flex flex-col items-center gap-6">
           <div className="w-16 h-16 bg-primary-container rounded-2xl flex items-center justify-center text-primary shadow-inner">
-            <BookOpen size={36} />
+            <Library size={36} />
           </div>
-          <h3 className="text-2xl font-black text-on-surface">새 책 등록하기</h3>
+          <h3 className="text-2xl font-black text-on-surface">책 등록하기</h3>
 
-          {/* Cover image upload */}
-          <label className="group relative cursor-pointer">
-            <div className="w-32 h-44 rounded-2xl overflow-hidden bg-surface-container-low border-2 border-dashed border-outline-variant flex items-center justify-center hover:border-primary transition-colors shadow-sm">
-              {coverPreview ? (
-                <img src={coverPreview} alt="표지" className="w-full h-full object-cover" />
-              ) : (
-                <div className="flex flex-col items-center gap-2 text-on-surface-variant">
-                  <Camera size={28} />
-                  <span className="text-xs font-bold">표지 사진</span>
-                </div>
+          {/* Real-time Search Section */}
+          <div className="w-full space-y-2 relative">
+            <label className="text-sm font-bold text-primary ml-2 uppercase tracking-wider">포장된 선물처럼 책 찾기</label>
+            <div className="relative">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => handleSearch(e.target.value)}
+                className="w-full bg-primary/5 border-2 border-primary/20 rounded-2xl px-5 py-4 text-base font-bold focus:border-primary outline-none transition-all pr-12 shadow-inner"
+                placeholder="책 제목을 검색해봐! (예: 해리포터)"
+              />
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 text-primary/40">
+                {isSearching ? <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1 }}><Star size={20} /></motion.div> : <Plus size={20} />}
+              </div>
+            </div>
+
+            {/* Search Results Dropdown */}
+            <AnimatePresence>
+              {searchResults.length > 0 && (
+                <motion.div 
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="absolute top-full left-0 w-full bg-white/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-primary/10 z-50 mt-2 overflow-hidden max-h-64 overflow-y-auto no-scrollbar"
+                >
+                  {searchResults.map((item, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => selectBook(item)}
+                      className="w-full flex items-center gap-4 p-4 hover:bg-primary/5 transition-colors border-b border-gray-100 last:border-0 text-left"
+                    >
+                      <div className="w-10 h-14 bg-gray-100 rounded shadow-sm overflow-hidden flex-shrink-0">
+                        {item.volumeInfo.imageLinks?.thumbnail && (
+                          <img src={item.volumeInfo.imageLinks.thumbnail} className="w-full h-full object-cover" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-on-surface truncate">{item.volumeInfo.title}</p>
+                        <p className="text-xs text-on-surface-variant truncate">{item.volumeInfo.authors?.join(', ')}</p>
+                      </div>
+                    </button>
+                  ))}
+                </motion.div>
               )}
-            </div>
-            <input type="file" accept="image/*" onChange={handleCoverUpload} className="hidden" />
-          </label>
+            </AnimatePresence>
+          </div>
 
-          <div className="w-full space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-on-surface-variant ml-2">책 제목 *</label>
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="w-full bg-white/60 backdrop-blur border-2 border-outline-variant rounded-2xl px-5 py-3.5 text-lg font-bold focus:border-primary outline-none transition-colors"
-                placeholder="어떤 책을 읽을 거야?"
-              />
+          <div className="w-full border-t border-dashed border-outline-variant my-2 px-10 relative">
+            <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-4 text-[10px] font-black text-outline-variant uppercase tracking-widest whitespace-nowrap">또는 직접 입력하기</span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 w-full mt-2">
+            {/* Cover image upload */}
+            <div className="md:col-span-4 flex flex-col items-center">
+              <label className="group relative cursor-pointer">
+                <div className="w-28 h-40 rounded-2xl overflow-hidden bg-surface-container-low border-2 border-dashed border-outline-variant flex items-center justify-center hover:border-primary transition-colors shadow-sm">
+                  {coverPreview ? (
+                    <img src={coverPreview} alt="표지" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="flex flex-col items-center gap-2 text-on-surface-variant">
+                      <Camera size={24} />
+                      <span className="text-[10px] font-black uppercase">표지 사진</span>
+                    </div>
+                  )}
+                </div>
+                <input type="file" accept="image/*" onChange={handleCoverUpload} className="hidden" />
+              </label>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-on-surface-variant ml-2">지은이</label>
-              <input
-                type="text"
-                value={author}
-                onChange={(e) => setAuthor(e.target.value)}
-                className="w-full bg-white/60 backdrop-blur border-2 border-outline-variant rounded-2xl px-5 py-3.5 text-lg font-bold focus:border-primary outline-none transition-colors"
-                placeholder="누가 쓴 책이야?"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-on-surface-variant ml-2">전체 쪽수</label>
-              <input
-                type="number"
-                value={totalPages}
-                onChange={(e) => setTotalPages(e.target.value)}
-                className="w-full bg-white/60 backdrop-blur border-2 border-outline-variant rounded-2xl px-5 py-3.5 text-lg font-bold focus:border-primary outline-none transition-colors"
-                placeholder="몇 쪽짜리 책이야?"
-              />
+
+            <div className="md:col-span-8 space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-on-surface-variant ml-1 uppercase tracking-wider">책 제목 *</label>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="w-full bg-white border-2 border-outline-variant rounded-xl px-4 py-3 text-base font-bold focus:border-primary outline-none transition-colors"
+                  placeholder="책 제목을 적어줘!"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-on-surface-variant ml-1 uppercase tracking-wider">지은이</label>
+                <input
+                  type="text"
+                  value={author}
+                  onChange={(e) => setAuthor(e.target.value)}
+                  className="w-full bg-white border-2 border-outline-variant rounded-xl px-4 py-3 text-base font-bold focus:border-primary outline-none transition-colors"
+                  placeholder="누가 썼을까?"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-on-surface-variant ml-1 uppercase tracking-wider">전체 쪽수</label>
+                <input
+                  type="number"
+                  value={totalPages}
+                  onChange={(e) => setTotalPages(e.target.value)}
+                  className="w-full bg-white border-2 border-outline-variant rounded-xl px-4 py-3 text-base font-bold focus:border-primary outline-none transition-colors"
+                  placeholder="몇 페이지야?"
+                />
+              </div>
             </div>
           </div>
 
           <button
             onClick={handleSubmit}
             disabled={!title.trim()}
-            className={`w-full py-4 rounded-2xl font-bold text-lg shadow-lg transition-all bounce-active ${
+            className={`w-full py-4 mt-2 rounded-2xl font-black text-lg shadow-xl transition-all bounce-active ${
               title.trim()
                 ? 'bg-primary text-white hover:bg-primary-dim'
                 : 'bg-outline-variant text-on-surface-variant opacity-50 cursor-not-allowed'
             }`}
           >
-            독서 시작! 📚
+            모험 시작하기! 🪄
           </button>
         </div>
       </motion.div>
