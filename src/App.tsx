@@ -1350,36 +1350,33 @@ export default function App() {
   };
 
   const handleSavePages = (bookId: string, dateStr: string, pages: number) => {
-    let shouldCelebrate = false;
+    // 1. Find the target book to check its current state
+    const currentBook = books.find(b => b.id === bookId);
+    if (!currentBook) return;
 
-    setBooks(prev => prev.map(b => {
-      if (b.id !== bookId) return b;
-      
-      const newLog = { ...(b.readingLog || {}) };
-      if (pages > 0) {
-        newLog[dateStr] = pages;
-      } else {
-        delete newLog[dateStr];
-      }
-      
-      // Calculate new progress
-      const totalRead = Object.values(newLog).reduce((sum, p) => sum + p, 0);
-      const newProgress = b.totalPages > 0 
-        ? Math.min(Math.round((totalRead / b.totalPages) * 100), 100) 
-        : 0;
-      
-      // Celebrate if it just reached 100%
-      if (newProgress === 100 && (b.progress || 0) < 100) {
-        shouldCelebrate = true;
-      }
+    // 2. Pre-calculate the new progress to decide whether to celebrate
+    const newLog = { ...(currentBook.readingLog || {}) };
+    if (pages > 0) {
+      newLog[dateStr] = pages;
+    } else {
+      delete newLog[dateStr];
+    }
+    
+    const totalRead = Object.values(newLog).reduce((sum, p) => sum + p, 0);
+    const newProgress = currentBook.totalPages > 0 
+      ? Math.min(Math.round((totalRead / currentBook.totalPages) * 100), 100) 
+      : 0;
 
-      return { 
-        ...b, 
-        readingLog: newLog,
-        progress: newProgress
-      };
-    }));
+    const shouldCelebrate = newProgress === 100 && (currentBook.progress || 0) < 100;
 
+    // 3. Update the state
+    setBooks(prev => prev.map(b => b.id === bookId ? { 
+      ...b, 
+      readingLog: newLog,
+      progress: newProgress 
+    } : b));
+
+    // 4. Fire confetti if just completed
     if (shouldCelebrate) {
       confetti({
         particleCount: 150,
