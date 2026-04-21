@@ -1781,23 +1781,24 @@ export default function App() {
     return saved ? JSON.parse(saved) : initialBooks;
   });
 
-  // Migration: Aggressively update old placeholder covers to real high-quality ones
+  // Migration: Forcibly update initial books to real high-quality covers to ensure all users see them
   useEffect(() => {
     const updatedBooks = books.map(book => {
-      // If it's one of the known books but doesn't have the real Google Books cover yet
-      const needsUpdate = (
-        book.title.includes('모순') || 
-        book.title.includes('자개장 할머니') || 
-        book.title.includes('도서관에 간 용') || 
-        book.title.includes('마법의 숲')
-      ) && !book.cover.includes('google.com/books/content');
+      const cleanTitle = book.title.trim();
+      
+      const config: Record<string, { author: string, cover: string }> = {
+        '모순': { author: '양귀자', cover: 'https://books.google.com/books/content?id=Hl4dAQAAQBAJ&printsec=frontcover&img=1&zoom=1' },
+        '자개장 할머니': { author: '안효림', cover: 'https://books.google.com/books/content?id=80knEQAAQBAJ&printsec=frontcover&img=1&zoom=1' },
+        '도서관에 간 용': { author: '루이 스토웰', cover: 'https://books.google.com/books/content?id=M8o9EAAAQBAJ&printsec=frontcover&img=1&zoom=1' },
+        '마법의 숲': { author: '에니드 블라이턴', cover: 'https://books.google.com/books/content?id=XwknEQAAQBAJ&printsec=frontcover&img=1&zoom=1' }
+      };
 
-      if (needsUpdate) {
-        if (book.title.includes('모순')) return { ...book, author: '양귀자', cover: 'https://books.google.com/books/content?id=Hl4dAQAAQBAJ&printsec=frontcover&img=1&zoom=1' };
-        if (book.title.includes('자개장 할머니')) return { ...book, author: '안효림', cover: 'https://books.google.com/books/content?id=80knEQAAQBAJ&printsec=frontcover&img=1&zoom=1' };
-        if (book.title.includes('도서관에 간 용')) return { ...book, author: '루이 스토웰', cover: 'https://books.google.com/books/content?id=M8o9EAAAQBAJ&printsec=frontcover&img=1&zoom=1' };
-        if (book.title.includes('마법의 숲')) return { ...book, author: '에니드 블라이턴', cover: 'https://books.google.com/books/content?id=XwknEQAAQBAJ&printsec=frontcover&img=1&zoom=1' };
+      for (const [key, val] of Object.entries(config)) {
+        if (cleanTitle.includes(key) && book.cover !== val.cover) {
+          return { ...book, ...val };
+        }
       }
+      
       return book;
     });
 
