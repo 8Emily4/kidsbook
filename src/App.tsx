@@ -1757,7 +1757,7 @@ const ShopView = ({ points }: { points: number }) => {
 const initialBooks: Book[] = [
   { id: 'b0', title: '모순', author: '양귀자', cover: 'https://books.google.com/books/content?id=Hl4dAQAAQBAJ&printsec=frontcover&img=1&zoom=1', totalPages: 300, progress: 0 },
   { id: 'b1', title: '자개장 할머니', author: '안효림', cover: 'https://books.google.com/books/content?id=80knEQAAQBAJ&printsec=frontcover&img=1&zoom=1', totalPages: 180, progress: 100 },
-  { id: 'b2', title: '도서관에 간 용', author: '루이 스토웰', cover: 'https://books.google.com/books/content?id=M8o9EAAAQBAJ&printsec=frontcover&img=1&zoom=1', totalPages: 240, progress: 46 },
+  { id: 'b2', title: '도서관에 간 사자', author: '미셸 누드슨', cover: 'https://books.google.com/books/content?id=8n_mDwAAQBAJ&printsec=frontcover&img=1&zoom=1', totalPages: 240, progress: 46 },
   { id: 'b3', title: '마법의 숲', author: '에니드 블라이턴', cover: 'https://books.google.com/books/content?id=XwknEQAAQBAJ&printsec=frontcover&img=1&zoom=1', totalPages: 320, progress: 72 },
   { id: 'b4', title: '우주 여행자', author: '이미애', cover: 'https://picsum.photos/seed/space/200/300', totalPages: 200, progress: 100 },
   { id: 'b5', title: '바다 속 탐험', author: '미상', cover: 'https://picsum.photos/seed/ocean/200/300', totalPages: 150, progress: 100 },
@@ -1784,15 +1784,16 @@ export default function App() {
     return initialRaw.map((book: Book) => {
       const cleanTitle = book.title.replace(/\s+/g, '').trim();
       
-      const config: Record<string, { author: string, cover: string }> = {
-        '모순': { author: '양귀자', cover: 'https://books.google.com/books/content?id=Hl4dAQAAQBAJ&printsec=frontcover&img=1&zoom=1' },
-        '자개장할머니': { author: '안효림', cover: 'https://books.google.com/books/content?id=80knEQAAQBAJ&printsec=frontcover&img=1&zoom=1' },
-        '도서관에간용': { author: '루이 스토웰', cover: 'https://books.google.com/books/content?id=M8o9EAAAQBAJ&printsec=frontcover&img=1&zoom=1' },
-        '마법의숲': { author: '에니드 블라이턴', cover: 'https://books.google.com/books/content?id=XwknEQAAQBAJ&printsec=frontcover&img=1&zoom=1' }
+      const config: Record<string, { title: string, author: string, cover: string }> = {
+        '모순': { title: '모순', author: '양귀자', cover: 'https://books.google.com/books/content?id=Hl4dAQAAQBAJ&printsec=frontcover&img=1&zoom=1' },
+        '자개장할머니': { title: '자개장 할머니', author: '안효림', cover: 'https://books.google.com/books/content?id=80knEQAAQBAJ&printsec=frontcover&img=1&zoom=1' },
+        '도서관에간용': { title: '도서관에 간 사자', author: '미셸 누드슨', cover: 'https://books.google.com/books/content?id=8n_mDwAAQBAJ&printsec=frontcover&img=1&zoom=1' },
+        '도서관에간사자': { title: '도서관에 간 사자', author: '미셸 누드슨', cover: 'https://books.google.com/books/content?id=8n_mDwAAQBAJ&printsec=frontcover&img=1&zoom=1' },
+        '마법의숲': { title: '마법의 숲', author: '에니드 블라이턴', cover: 'https://books.google.com/books/content?id=XwknEQAAQBAJ&printsec=frontcover&img=1&zoom=1' }
       };
 
       for (const [key, val] of Object.entries(config)) {
-        if (cleanTitle.includes(key) && book.cover !== val.cover) {
+        if (cleanTitle.includes(key) && (book.cover !== val.cover || book.title !== val.title)) {
           return { ...book, ...val };
         }
       }
@@ -1804,15 +1805,16 @@ export default function App() {
   useEffect(() => {
     const updatedBooks = books.map(book => {
       const cleanTitle = book.title.replace(/\s+/g, '').trim();
-      const config: Record<string, { author: string, cover: string }> = {
-        '모순': { author: '양귀자', cover: 'https://books.google.com/books/content?id=Hl4dAQAAQBAJ&printsec=frontcover&img=1&zoom=1' },
-        '자개장할머니': { author: '안효림', cover: 'https://books.google.com/books/content?id=80knEQAAQBAJ&printsec=frontcover&img=1&zoom=1' },
-        '도서관에간용': { author: '루이 스토웰', cover: 'https://books.google.com/books/content?id=M8o9EAAAQBAJ&printsec=frontcover&img=1&zoom=1' },
-        '마법의숲': { author: '에니드 블라이턴', cover: 'https://books.google.com/books/content?id=XwknEQAAQBAJ&printsec=frontcover&img=1&zoom=1' }
+      const config: Record<string, { title: string, author: string, cover: string }> = {
+        '모순': { title: '모순', author: '양귀자', cover: 'https://books.google.com/books/content?id=Hl4dAQAAQBAJ&printsec=frontcover&img=1&zoom=1' },
+        '자개장할머니': { title: '자개장 할머니', author: '안효림', cover: 'https://books.google.com/books/content?id=80knEQAAQBAJ&printsec=frontcover&img=1&zoom=1' },
+        '도서관에간용': { title: '도서관에 간 사자', author: '미셸 누드슨', cover: 'https://books.google.com/books/content?id=8n_mDwAAQBAJ&printsec=frontcover&img=1&zoom=1' },
+        '도서관에간사자': { title: '도서관에 간 사자', author: '미셸 누드슨', cover: 'https://books.google.com/books/content?id=8n_mDwAAQBAJ&printsec=frontcover&img=1&zoom=1' },
+        '마법의숲': { title: '마법의 숲', author: '에니드 블라이턴', cover: 'https://books.google.com/books/content?id=XwknEQAAQBAJ&printsec=frontcover&img=1&zoom=1' }
       };
 
       for (const [key, val] of Object.entries(config)) {
-        if (cleanTitle.includes(key) && book.cover !== val.cover) {
+        if (cleanTitle.includes(key) && (book.cover !== val.cover || book.title !== val.title)) {
           return { ...book, ...val };
         }
       }
