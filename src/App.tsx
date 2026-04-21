@@ -1755,10 +1755,10 @@ const ShopView = ({ points }: { points: number }) => {
 };
 
 const initialBooks: Book[] = [
-  { id: 'b0', title: '모순', author: '양귀자', cover: '/assets/covers/mosun.png', totalPages: 300, progress: 0 },
-  { id: 'b1', title: '자개장 할머니', author: '미상', cover: '/assets/covers/grandma.png', totalPages: 180, progress: 100 },
-  { id: 'b2', title: '도서관에 간 용', author: '루이 스토웰', cover: '/assets/covers/dragon.png', totalPages: 240, progress: 46 },
-  { id: 'b3', title: '마법의 숲', author: '엘라라 문빔', cover: '/assets/covers/magic_forest.png', totalPages: 320, progress: 72 },
+  { id: 'b0', title: '모순', author: '양귀자', cover: 'https://image.aladin.co.kr/product/26649/88/cover500/k9788998441012_1.jpg', totalPages: 300, progress: 0 },
+  { id: 'b1', title: '자개장 할머니', author: '이미애', cover: 'https://image.aladin.co.kr/product/15474/32/cover500/k352535940_1.jpg', totalPages: 180, progress: 100 },
+  { id: 'b2', title: '도서관에 간 용', author: '루이 스토웰', cover: 'https://image.aladin.co.kr/product/27041/12/cover500/k282731804_1.jpg', totalPages: 240, progress: 46 },
+  { id: 'b3', title: '마법의 숲', author: '에니드 블라이턴', cover: 'https://image.aladin.co.kr/product/28221/99/cover500/k722834015_1.jpg', totalPages: 320, progress: 72 },
   { id: 'b4', title: '우주 여행자', author: '미상', cover: 'https://picsum.photos/seed/space/200/300', totalPages: 200, progress: 100 },
   { id: 'b5', title: '바다 속 탐험', author: '미상', cover: 'https://picsum.photos/seed/ocean/200/300', totalPages: 150, progress: 100 },
 ];
@@ -1781,14 +1781,15 @@ export default function App() {
     return saved ? JSON.parse(saved) : initialBooks;
   });
 
-  // Migration: Update old placeholder covers to new high-quality ones
+  // Migration: Update old placeholder covers to real high-quality ones
   useEffect(() => {
     const updatedBooks = books.map(book => {
-      if (book.cover.includes('picsum.photos')) {
-        if (book.title === '모순') return { ...book, cover: '/assets/covers/mosun.png' };
-        if (book.title === '자개장 할머니') return { ...book, cover: '/assets/covers/grandma.png' };
-        if (book.title === '도서관에 간 용') return { ...book, cover: '/assets/covers/dragon.png' };
-        if (book.title === '마법의 숲') return { ...book, cover: '/assets/covers/magic_forest.png' };
+      const isPlaceholder = book.cover.includes('picsum.photos') || book.cover.includes('/assets/covers/');
+      if (isPlaceholder) {
+        if (book.title === '모순') return { ...book, cover: 'https://image.aladin.co.kr/product/26649/88/cover500/k9788998441012_1.jpg' };
+        if (book.title === '자개장 할머니') return { ...book, cover: 'https://image.aladin.co.kr/product/15474/32/cover500/k352535940_1.jpg' };
+        if (book.title === '도서관에 간 용') return { ...book, cover: 'https://image.aladin.co.kr/product/27041/12/cover500/k282731804_1.jpg' };
+        if (book.title === '마법의 숲') return { ...book, cover: 'https://image.aladin.co.kr/product/28221/99/cover500/k722834015_1.jpg' };
       }
       return book;
     });
