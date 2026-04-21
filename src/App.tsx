@@ -632,7 +632,11 @@ const DashboardView = ({
       </div>
 
       <div className="bg-tertiary-container rounded-lg p-8 shadow-md flex flex-col items-center text-center justify-center border-b-4 border-tertiary/20">
-        <Medal size={64} className="text-tertiary mb-4" fill="currentColor" />
+        <img 
+          src="/assets/weekend_reading_medal.png" 
+          alt="주말 독서 챌린지 메달" 
+          className="w-20 h-20 mb-4 object-contain drop-shadow-md" 
+        />
         <h4 className="font-bold text-xl text-on-tertiary-container leading-tight">주말 독서 챌린지</h4>
         <p className="text-on-tertiary-container/80 text-base mt-3 leading-relaxed">
           이번 주말에 60분 읽고<br />배지를 획득해봐!
