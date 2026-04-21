@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { GoogleGenerativeAI } from '@google/genai';
+import { GoogleGenAI } from '@google/genai';
 import { motion, AnimatePresence } from 'motion/react';
 import confetti from 'canvas-confetti';
 import { 
@@ -276,7 +276,7 @@ const AddBookModal = ({
   };
 
   const apiKey = getSafeApiKey();
-  const genAI = new GoogleGenerativeAI(apiKey || 'dummy-key');
+  const genAI = new GoogleGenAI({ apiKey: apiKey || 'dummy-key' });
   const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
   // Debounced search effect
