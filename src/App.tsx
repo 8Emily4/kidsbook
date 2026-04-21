@@ -276,8 +276,8 @@ const AddBookModal = ({
   };
 
   const apiKey = getSafeApiKey();
-  const genAI = new GoogleGenAI({ apiKey: apiKey || 'dummy-key' });
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const genAI = apiKey && apiKey !== 'dummy-key' ? new GoogleGenAI({ apiKey }) : null;
+  const model = genAI ? genAI.getGenerativeModel({ model: "gemini-1.5-flash" }) : null;
 
   // Debounced search effect
   useEffect(() => {
@@ -312,7 +312,7 @@ const AddBookModal = ({
 
     // 2. Fire Gemini AI Suggestion in parallel (Non-blocking)
     const getAiSuggestion = async () => {
-      if (!apiKey || apiKey === 'dummy-key') return;
+      if (!model) return;
       try {
         const prompt = `당신은 어린이 도서 전문가입니다. 사용자의 검색어 "${query}"를 분석해서 가장 적합한 도서 제목 한 가지만 추천해주세요. 만약 오타가 있다면 고쳐주세요. 답변은 오직 도서 제목만 짧게 해주세요.`;
         const result = await model.generateContent(prompt);
@@ -1790,33 +1790,46 @@ export default function App() {
   }, 0);
 
   const calculateStreak = (allBooks: Book[]) => {
+    if (!allBooks || allBooks.length === 0) return 0;
+    
     const dates = new Set<string>();
-    allBooks.forEach(b => {
-      if (b.readingLog) {
-        Object.keys(b.readingLog).forEach(d => {
-          if (b.readingLog![d] > 0) dates.add(d);
-        });
-      }
-    });
+    try {
+      allBooks.forEach(b => {
+        if (b.readingLog) {
+          Object.keys(b.readingLog).forEach(d => {
+            if (b.readingLog![d] > 0) dates.add(d);
+          });
+        }
+      });
+    } catch (e) {
+      console.warn('Streak calculation failed while parsing dates', e);
+      return 0;
+    }
 
-    const sortedDates = Array.from(dates).sort((a, b) => b.localeCompare(a));
-    if (sortedDates.length === 0) return 0;
+    if (dates.size === 0) return 0;
 
     let streak = 0;
     const checkDate = new Date();
     
-    // Check if read today, if not start from yesterday
-    let currentStr = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}-${String(checkDate.getDate()).padStart(2, '0')}`;
-    
-    if (!dates.has(currentStr)) {
-      checkDate.setDate(checkDate.getDate() - 1);
-      currentStr = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}-${String(checkDate.getDate()).padStart(2, '0')}`;
-    }
+    try {
+      // Check if read today, if not start from yesterday
+      let currentStr = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}-${String(checkDate.getDate()).padStart(2, '0')}`;
+      
+      if (!dates.has(currentStr)) {
+        checkDate.setDate(checkDate.getDate() - 1);
+        currentStr = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}-${String(checkDate.getDate()).padStart(2, '0')}`;
+      }
 
-    while (dates.has(currentStr)) {
-      streak++;
-      checkDate.setDate(checkDate.getDate() - 1);
-      currentStr = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}-${String(checkDate.getDate()).padStart(2, '0')}`;
+      // Safeguard against potential infinite loop (max 365 days)
+      let safetyCount = 0;
+      while (dates.has(currentStr) && safetyCount < 365) {
+        streak++;
+        checkDate.setDate(checkDate.getDate() - 1);
+        currentStr = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}-${String(checkDate.getDate()).padStart(2, '0')}`;
+        safetyCount++;
+      }
+    } catch (e) {
+      console.warn('Streak calculation failed while looping', e);
     }
 
     return streak;
