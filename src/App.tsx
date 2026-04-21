@@ -1778,19 +1778,17 @@ export default function App() {
 
   const [books, setBooks] = useState<Book[]>(() => {
     const saved = localStorage.getItem('kidsbook-books');
-    return saved ? JSON.parse(saved) : initialBooks;
-  });
-
-  // Migration: Forcibly update initial books to real high-quality covers to ensure all users see them
-  useEffect(() => {
-    const updatedBooks = books.map(book => {
-      const cleanTitle = book.title.trim();
+    const initialRaw = saved ? JSON.parse(saved) : initialBooks;
+    
+    // Unconditional migration during initialization for immediate feedback
+    return initialRaw.map((book: Book) => {
+      const cleanTitle = book.title.replace(/\s+/g, '').trim();
       
       const config: Record<string, { author: string, cover: string }> = {
         '모순': { author: '양귀자', cover: 'https://books.google.com/books/content?id=Hl4dAQAAQBAJ&printsec=frontcover&img=1&zoom=1' },
-        '자개장 할머니': { author: '안효림', cover: 'https://books.google.com/books/content?id=80knEQAAQBAJ&printsec=frontcover&img=1&zoom=1' },
-        '도서관에 간 용': { author: '루이 스토웰', cover: 'https://books.google.com/books/content?id=M8o9EAAAQBAJ&printsec=frontcover&img=1&zoom=1' },
-        '마법의 숲': { author: '에니드 블라이턴', cover: 'https://books.google.com/books/content?id=XwknEQAAQBAJ&printsec=frontcover&img=1&zoom=1' }
+        '자개장할머니': { author: '안효림', cover: 'https://books.google.com/books/content?id=80knEQAAQBAJ&printsec=frontcover&img=1&zoom=1' },
+        '도서관에간용': { author: '루이 스토웰', cover: 'https://books.google.com/books/content?id=M8o9EAAAQBAJ&printsec=frontcover&img=1&zoom=1' },
+        '마법의숲': { author: '에니드 블라이턴', cover: 'https://books.google.com/books/content?id=XwknEQAAQBAJ&printsec=frontcover&img=1&zoom=1' }
       };
 
       for (const [key, val] of Object.entries(config)) {
@@ -1798,7 +1796,26 @@ export default function App() {
           return { ...book, ...val };
         }
       }
-      
+      return book;
+    });
+  });
+
+  // Migration: Keep state in sync if external changes occur (redundant but safe)
+  useEffect(() => {
+    const updatedBooks = books.map(book => {
+      const cleanTitle = book.title.replace(/\s+/g, '').trim();
+      const config: Record<string, { author: string, cover: string }> = {
+        '모순': { author: '양귀자', cover: 'https://books.google.com/books/content?id=Hl4dAQAAQBAJ&printsec=frontcover&img=1&zoom=1' },
+        '자개장할머니': { author: '안효림', cover: 'https://books.google.com/books/content?id=80knEQAAQBAJ&printsec=frontcover&img=1&zoom=1' },
+        '도서관에간용': { author: '루이 스토웰', cover: 'https://books.google.com/books/content?id=M8o9EAAAQBAJ&printsec=frontcover&img=1&zoom=1' },
+        '마법의숲': { author: '에니드 블라이턴', cover: 'https://books.google.com/books/content?id=XwknEQAAQBAJ&printsec=frontcover&img=1&zoom=1' }
+      };
+
+      for (const [key, val] of Object.entries(config)) {
+        if (cleanTitle.includes(key) && book.cover !== val.cover) {
+          return { ...book, ...val };
+        }
+      }
       return book;
     });
 
