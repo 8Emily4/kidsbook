@@ -1755,13 +1755,12 @@ const ShopView = ({ points }: { points: number }) => {
 };
 
 const initialBooks: Book[] = [
-  { id: 'b1', title: '자개장 할머니', author: '미상', cover: 'https://picsum.photos/seed/grandma/200/300', totalPages: 180, progress: 100 },
-  { id: 'b2', title: '도서관에 간 용', author: '루이 스토웰', cover: 'https://picsum.photos/seed/book1/200/300', totalPages: 240, progress: 46 },
-  { id: 'b3', title: '마법의 숲', author: '엘라라 문빔', cover: 'https://picsum.photos/seed/magicforest/200/300', totalPages: 320, progress: 72 },
+  { id: 'b0', title: '모순', author: '양귀자', cover: '/assets/covers/mosun.png', totalPages: 300, progress: 0 },
+  { id: 'b1', title: '자개장 할머니', author: '미상', cover: '/assets/covers/grandma.png', totalPages: 180, progress: 100 },
+  { id: 'b2', title: '도서관에 간 용', author: '루이 스토웰', cover: '/assets/covers/dragon.png', totalPages: 240, progress: 46 },
+  { id: 'b3', title: '마법의 숲', author: '엘라라 문빔', cover: '/assets/covers/magic_forest.png', totalPages: 320, progress: 72 },
   { id: 'b4', title: '우주 여행자', author: '미상', cover: 'https://picsum.photos/seed/space/200/300', totalPages: 200, progress: 100 },
   { id: 'b5', title: '바다 속 탐험', author: '미상', cover: 'https://picsum.photos/seed/ocean/200/300', totalPages: 150, progress: 100 },
-  { id: 'b6', title: '용감한 다람쥐', author: '미상', cover: 'https://picsum.photos/seed/squirrel/200/300', totalPages: 160, progress: 100 },
-  { id: 'b7', title: '구름 나라 이야기', author: '미상', cover: 'https://picsum.photos/seed/clouds/200/300', totalPages: 190, progress: 100 },
 ];
 
 export default function App() {
@@ -1781,6 +1780,25 @@ export default function App() {
     const saved = localStorage.getItem('kidsbook-books');
     return saved ? JSON.parse(saved) : initialBooks;
   });
+
+  // Migration: Update old placeholder covers to new high-quality ones
+  useEffect(() => {
+    const updatedBooks = books.map(book => {
+      if (book.cover.includes('picsum.photos')) {
+        if (book.title === '모순') return { ...book, cover: '/assets/covers/mosun.png' };
+        if (book.title === '자개장 할머니') return { ...book, cover: '/assets/covers/grandma.png' };
+        if (book.title === '도서관에 간 용') return { ...book, cover: '/assets/covers/dragon.png' };
+        if (book.title === '마법의 숲') return { ...book, cover: '/assets/covers/magic_forest.png' };
+      }
+      return book;
+    });
+
+    // Check if anything actually changed to avoid infinite loop
+    const hasChanged = JSON.stringify(updatedBooks) !== JSON.stringify(books);
+    if (hasChanged) {
+      setBooks(updatedBooks);
+    }
+  }, [books]);
 
   const [selectedLogBook, setSelectedLogBook] = useState<Book | null>(null);
 
