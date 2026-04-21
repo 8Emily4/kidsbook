@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { GoogleGenerativeAI } from '@google/genai';
 import { motion, AnimatePresence } from 'motion/react';
 import confetti from 'canvas-confetti';
 import { 
@@ -260,24 +261,80 @@ const AddBookModal = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
 
-  const handleSearch = async (query: string) => {
-    setSearchQuery(query);
-    if (query.length < 2) {
-      setSearchResults([]);
-      return;
-    }
-
-    setIsSearching(true);
+  // Gemini Initialization with safety check for process object
+  const getSafeApiKey = () => {
     try {
-      const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=5&langRestrict=ko`);
-      const data = await response.json();
-      setSearchResults(data.items || []);
-    } catch (error) {
-      console.error('Book search failed:', error);
-    } finally {
-      setIsSearching(false);
+      if (typeof process !== 'undefined' && process.env) {
+        return (process.env as any).GEMINI_API_KEY || '';
+      }
+      return (import.meta as any).env?.VITE_GEMINI_API_KEY || '';
+    } catch (e) {
+      return '';
     }
+  };
+
+  const apiKey = getSafeApiKey();
+  const genAI = new GoogleGenerativeAI(apiKey || 'dummy-key');
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+  // Debounced search effect
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchQuery.trim().length >= 2) {
+        performSmartSearch(searchQuery);
+      } else {
+        setSearchResults([]);
+        setAiSuggestion(null);
+      }
+    }, 300); // Reduced to 300ms for snappier feel
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const performSmartSearch = async (query: string) => {
+    setIsSearching(true);
+    setAiSuggestion(null);
+    
+    // 1. Fire Google Books search immediately
+    const fetchBooks = async (searchQ: string) => {
+      try {
+        const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(searchQ)}&maxResults=10`);
+        const data = await response.json();
+        if (data.items) {
+          setSearchResults(data.items);
+        }
+      } catch (err) {
+        console.error('Google Books fetch failed:', err);
+      }
+    };
+
+    // 2. Fire Gemini AI Suggestion in parallel (Non-blocking)
+    const getAiSuggestion = async () => {
+      if (!apiKey || apiKey === 'dummy-key') return;
+      try {
+        const prompt = `당신은 어린이 도서 전문가입니다. 사용자의 검색어 "${query}"를 분석해서 가장 적합한 도서 제목 한 가지만 추천해주세요. 만약 오타가 있다면 고쳐주세요. 답변은 오직 도서 제목만 짧게 해주세요.`;
+        const result = await model.generateContent(prompt);
+        const suggestion = result.response.text().trim().replace(/["]+/g, '');
+        
+        if (suggestion && suggestion !== query && suggestion.length > 1) {
+          setAiSuggestion(suggestion);
+          // If suggestion is very different, trigger another fetch with refined query
+          fetchBooks(suggestion);
+        }
+      } catch (aiErr) {
+        console.warn('Gemini suggestion failed', aiErr);
+      }
+    };
+
+    // Execute both
+    fetchBooks(query);
+    getAiSuggestion().finally(() => setIsSearching(false));
+  };
+
+  const handleSearchChange = (val: string) => {
+    setSearchQuery(val);
   };
 
   const selectBook = (item: any) => {
@@ -286,6 +343,12 @@ const AddBookModal = ({
     setAuthor(info.authors?.join(', ') || '');
     setTotalPages(info.pageCount ? String(info.pageCount) : '');
     setCoverPreview(info.imageLinks?.thumbnail?.replace('http:', 'https:') || '');
+    
+    // Add additional metadata for variety (categories, description etc)
+    const category = info.categories ? info.categories[0] : "독서";
+    const summary = info.description ? info.description.substring(0, 100) + '...' : '';
+    
+    // Using these internally or adding to the book object later
     setSearchResults([]);
     setSearchQuery('');
   };
@@ -347,7 +410,7 @@ const AddBookModal = ({
               <input
                 type="text"
                 value={searchQuery}
-                onChange={(e) => handleSearch(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 className="w-full bg-primary/5 border-2 border-primary/20 rounded-2xl px-5 py-4 text-base font-bold focus:border-primary outline-none transition-all pr-12 shadow-inner"
                 placeholder="책 제목을 검색해봐! (예: 해리포터)"
               />
@@ -358,30 +421,43 @@ const AddBookModal = ({
 
             {/* Search Results Dropdown */}
             <AnimatePresence>
-              {searchResults.length > 0 && (
+              {(searchResults.length > 0 || (searchQuery.trim().length >= 2 && !isSearching)) && (
                 <motion.div 
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
                   className="absolute top-full left-0 w-full bg-white/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-primary/10 z-50 mt-2 overflow-hidden max-h-64 overflow-y-auto no-scrollbar"
                 >
-                  {searchResults.map((item, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => selectBook(item)}
-                      className="w-full flex items-center gap-4 p-4 hover:bg-primary/5 transition-colors border-b border-gray-100 last:border-0 text-left"
-                    >
-                      <div className="w-10 h-14 bg-gray-100 rounded shadow-sm overflow-hidden flex-shrink-0">
-                        {item.volumeInfo.imageLinks?.thumbnail && (
-                          <img src={item.volumeInfo.imageLinks.thumbnail} className="w-full h-full object-cover" />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-bold text-on-surface truncate">{item.volumeInfo.title}</p>
-                        <p className="text-xs text-on-surface-variant truncate">{item.volumeInfo.authors?.join(', ')}</p>
-                      </div>
-                    </button>
-                  ))}
+                  {aiSuggestion && (
+                    <div className="px-4 py-2 bg-primary/5 text-primary text-[10px] font-bold border-b border-primary/10 flex items-center gap-2">
+                      <Zap size={10} fill="currentColor" /> AI 추천: "{aiSuggestion}" 결과입니다
+                    </div>
+                  )}
+                  {searchResults.length === 0 && !isSearching ? (
+                    <div className="p-8 text-center space-y-2">
+                      <HelpCircle size={32} className="mx-auto text-on-surface-variant/20" />
+                      <p className="text-sm font-bold text-on-surface-variant">어라? 검색 결과가 없어요 ㅠㅠ</p>
+                      <p className="text-[10px] text-on-surface-variant/60">다른 검색어로 다시 시도해볼까요?</p>
+                    </div>
+                  ) : (
+                    searchResults.map((item, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => selectBook(item)}
+                        className="w-full flex items-center gap-4 p-4 hover:bg-primary/5 transition-colors border-b border-gray-100 last:border-0 text-left"
+                      >
+                        <div className="w-10 h-14 bg-gray-100 rounded shadow-sm overflow-hidden flex-shrink-0">
+                          {item.volumeInfo.imageLinks?.thumbnail && (
+                            <img src={item.volumeInfo.imageLinks.thumbnail} className="w-full h-full object-cover" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-on-surface truncate">{item.volumeInfo.title}</p>
+                          <p className="text-xs text-on-surface-variant truncate">{item.volumeInfo.authors?.join(', ')}</p>
+                        </div>
+                      </button>
+                    ))
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -465,13 +541,15 @@ const DashboardView = ({
   profileImage, 
   onStartReading,
   todayPages,
-  dailyGoal
+  dailyGoal,
+  streak
 }: { 
   profile: UserProfile; 
   profileImage: string; 
   onStartReading: () => void;
   todayPages: number;
   dailyGoal: number;
+  streak: number;
 }) => {
   const percentage = dailyGoal > 0 ? Math.min(Math.round((todayPages / dailyGoal) * 100), 100) : 0;
   const isGoalMet = percentage >= 100;
@@ -548,7 +626,7 @@ const DashboardView = ({
           </div>
           <div className="bg-primary-container/20 px-5 py-2.5 rounded-full flex items-center gap-2">
             <Zap size={18} className="text-primary" />
-            <span className="text-primary font-bold text-base">5일 연속</span>
+            <span className="text-primary font-bold text-base">{streak}일 연속</span>
           </div>
         </div>
       </div>
@@ -725,29 +803,26 @@ const BADGES = [
 ];
 
 const TIER_STYLES: Record<string, string> = {
-  bronze: "bg-gradient-to-br from-[#A0522D] via-[#CD7F32] to-[#8B4513] text-[#F5DEB3] border-[#743A14]/50 shadow-[#A0522D]/20",
-  silver: "bg-gradient-to-br from-[#71706E] via-[#C0C0C0] to-[#E5E4E2] text-[#F5F5F5] border-[#4A4A4A]/30 shadow-[#C0C0C0]/20",
-  gold: "bg-gradient-to-br from-[#BF953F] via-[#FCF6BA] to-[#B38728] text-[#FFF8E1] border-[#8C6D1F]/40 shadow-[#BF953F]/20",
-  platinum: "bg-gradient-to-br from-[#E5E4E2] via-[#F8F8F8] to-[#D1D1D1] text-[#2C3E50] border-[#A0A0A0]/30 shadow-[#E5E4E2]/20",
-  master: "bg-gradient-to-br from-[#8E2DE2] to-[#4A00E0] text-white border-[#3F00B5]/40 shadow-[0_4px_15px_rgba(142,45,226,0.4)]"
+  bronze: "bg-gradient-to-br from-[#A0522D] via-[#CD7F32] to-[#8B4513] text-[#F5DEB3] border-[#743A14]/50 shadow-[#A0522D]/40",
+  silver: "bg-gradient-to-br from-[#71706E] via-[#C0C0C0] to-[#E5E4E2] text-[#F5F5F5] border-[#4A4A4A]/30 shadow-[#C0C0C0]/30",
+  gold: "bg-gradient-to-br from-[#BF953F] via-[#FCF6BA] to-[#B38728] text-[#FFF8E1] border-[#8C6D1F]/50 shadow-[#BF953F]/40",
+  platinum: "bg-gradient-to-br from-[#E5E4E2] via-[#F8F8F8] to-[#D1D1D1] text-[#2C3E50] border-[#A0A0A0]/40 shadow-[#E5E4E2]/30",
+  master: "bg-gradient-to-br from-[#8E2DE2] via-[#4A00E0] to-[#9C27B0] text-white border-[#3F00B5]/50 shadow-[0_8px_20px_rgba(142,45,226,0.5)]"
 };
 
 const MedalIcon = ({ tier, size = 52 }: { tier: string, size?: number }) => {
-  const ribbonColors: Record<string, string> = {
-    bronze: "#E53935", // Red
-    silver: "#1E88E5", // Blue
-    gold: "#3949AB",   // Indigo
-    platinum: "#00ACC1", // Teal
-    master: "#FFD700"  // Gold ribbon for Master
+  const filterId = `metal-filter-${tier}`;
+  const gradientId = `metal-grad-${tier}`;
+  
+  const colors: Record<string, { main: string, dark: string, light: string, ribbon: string }> = {
+    bronze: { main: "#CD7F32", dark: "#8B4513", light: "#E0AC69", ribbon: "#E53935" },
+    silver: { main: "#C0C0C0", dark: "#71706E", light: "#E5E4E2", ribbon: "#1E88E5" },
+    gold: { main: "#FFD700", dark: "#B38728", light: "#FCF6BA", ribbon: "#3949AB" },
+    platinum: { main: "#E5E4E2", dark: "#A0A0A0", light: "#F8F8F8", ribbon: "#00ACC1" },
+    master: { main: "#9C27B0", dark: "#4A148C", light: "#E1BEE7", ribbon: "#FFD700" }
   };
 
-  const medalGradients: Record<string, string> = {
-    bronze: "#CD7F32",
-    silver: "#C0C0C0",
-    gold: "#FFD700",
-    platinum: "#E5E4E2",
-    master: "#9C27B0"
-  };
+  const c = colors[tier] || colors.bronze;
 
   return (
     <svg 
@@ -756,43 +831,64 @@ const MedalIcon = ({ tier, size = 52 }: { tier: string, size?: number }) => {
       viewBox="0 0 24 24" 
       fill="none" 
       xmlns="http://www.w3.org/2000/svg"
-      className="drop-shadow-sm"
+      className="drop-shadow-lg"
     >
-      {/* V-Shaped Ribbon - Separate Left and Right bands for hollow effect */}
+      <defs>
+        {/* Specular lighting for metallic gleam */}
+        <filter id={filterId} x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur in="SourceAlpha" stdDeviation="0.2" result="blur" />
+          <feSpecularLighting in="blur" surfaceScale="5" specularConstant="1.2" specularExponent="40" lightingColor="#ffffff" result="specOut">
+            <fePointLight x="-50" y="-100" z="200" />
+          </feSpecularLighting>
+          <feComposite in="specOut" in2="SourceAlpha" operator="in" result="specOut" />
+          <feComposite in="SourceGraphic" in2="specOut" operator="arithmetic" k1="0" k2="1" k3="1" k4="0" />
+        </filter>
+        
+        <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor={c.light} />
+          <stop offset="45%" stopColor={c.main} />
+          <stop offset="55%" stopColor={c.main} />
+          <stop offset="100%" stopColor={c.dark} />
+        </linearGradient>
+      </defs>
+
+      {/* V-Shaped Ribbon */}
       <path 
         d="M12 14.5L5 2H9L12 9L15 2H19L12 14.5Z" 
-        fill={ribbonColors[tier] || "#ccc"}
-        stroke="rgba(0,0,0,0.15)"
+        fill={c.ribbon}
+        stroke="rgba(0,0,0,0.2)"
         strokeWidth="0.5"
       />
       
-      {/* Medal Body */}
+      {/* Medal Shadow */}
+      <circle cx="12.3" cy="15.3" r="6" fill="black" fillOpacity="0.1" />
+
+      {/* Medal Body with Filter */}
       <circle 
         cx="12" 
         cy="15" 
         r="6" 
-        fill={medalGradients[tier] || "#999"}
+        fill={`url(#${gradientId})`}
+        filter={`url(#${filterId})`}
         stroke="rgba(255,255,255,0.4)"
-        strokeWidth="1"
+        strokeWidth="0.8"
       />
       
-      {/* Medal Border/Detail */}
+      {/* Decorative center ring */}
       <circle 
         cx="12" 
         cy="15" 
         r="4.5" 
         fill="none" 
-        stroke="rgba(0,0,0,0.1)" 
+        stroke="rgba(255,255,255,0.3)" 
         strokeWidth="0.5"
       />
 
-      {/* Shine effect */}
-      <circle 
-        cx="10.5" 
-        cy="13.5" 
-        r="2" 
-        fill="white" 
-        fillOpacity="0.25"
+      {/* Small center star */}
+      <path
+        d="M12 13L12.5 14.5L14 15L12.5 15.5L12 17L11.5 15.5L10 15L11.5 14.5L12 13Z"
+        fill="white"
+        fillOpacity="0.8"
       />
     </svg>
   );
@@ -1693,6 +1789,41 @@ export default function App() {
     return total + (book.readingLog?.[todayStr] || 0);
   }, 0);
 
+  const calculateStreak = (allBooks: Book[]) => {
+    const dates = new Set<string>();
+    allBooks.forEach(b => {
+      if (b.readingLog) {
+        Object.keys(b.readingLog).forEach(d => {
+          if (b.readingLog![d] > 0) dates.add(d);
+        });
+      }
+    });
+
+    const sortedDates = Array.from(dates).sort((a, b) => b.localeCompare(a));
+    if (sortedDates.length === 0) return 0;
+
+    let streak = 0;
+    const checkDate = new Date();
+    
+    // Check if read today, if not start from yesterday
+    let currentStr = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}-${String(checkDate.getDate()).padStart(2, '0')}`;
+    
+    if (!dates.has(currentStr)) {
+      checkDate.setDate(checkDate.getDate() - 1);
+      currentStr = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}-${String(checkDate.getDate()).padStart(2, '0')}`;
+    }
+
+    while (dates.has(currentStr)) {
+      streak++;
+      checkDate.setDate(checkDate.getDate() - 1);
+      currentStr = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}-${String(checkDate.getDate()).padStart(2, '0')}`;
+    }
+
+    return streak;
+  };
+
+  const streak = calculateStreak(books);
+
   // Persistence effects
   useEffect(() => {
     localStorage.setItem('kidsbook-profile', JSON.stringify(profile));
@@ -1771,6 +1902,7 @@ export default function App() {
                 onStartReading={() => setIsAddBookOpen(true)}
                 todayPages={todayPages}
                 dailyGoal={DAILY_GOAL}
+                streak={streak}
               />
             </motion.div>
           )}
