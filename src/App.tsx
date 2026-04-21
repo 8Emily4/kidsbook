@@ -1781,20 +1781,26 @@ export default function App() {
     return saved ? JSON.parse(saved) : initialBooks;
   });
 
-  // Migration: Update old placeholder covers to real high-quality ones
+  // Migration: Aggressively update old placeholder covers to real high-quality ones
   useEffect(() => {
     const updatedBooks = books.map(book => {
-      const isPlaceholder = book.cover.includes('picsum.photos') || book.cover.includes('/assets/covers/') || book.cover.includes('aladin.co.kr');
-      if (isPlaceholder) {
-        if (book.title === '모순') return { ...book, cover: 'https://books.google.com/books/content?id=eBy2DwAAQBAJ&printsec=frontcover&img=1&zoom=1' };
-        if (book.title === '자개장 할머니') return { ...book, cover: 'https://books.google.com/books/content?id=80knEQAAQBAJ&printsec=frontcover&img=1&zoom=1' };
-        if (book.title === '도서관에 간 용') return { ...book, cover: 'https://books.google.com/books/content?id=M8o9EAAAQBAJ&printsec=frontcover&img=1&zoom=1' };
-        if (book.title === '마법의 숲') return { ...book, cover: 'https://books.google.com/books/content?id=XwknEQAAQBAJ&printsec=frontcover&img=1&zoom=1' };
+      // If it's one of the known books but doesn't have the real Google Books cover yet
+      const needsUpdate = (
+        book.title.includes('모순') || 
+        book.title.includes('자개장 할머니') || 
+        book.title.includes('도서관에 간 용') || 
+        book.title.includes('마법의 숲')
+      ) && !book.cover.includes('google.com/books/content');
+
+      if (needsUpdate) {
+        if (book.title.includes('모순')) return { ...book, author: '양귀자', cover: 'https://books.google.com/books/content?id=eBy2DwAAQBAJ&printsec=frontcover&img=1&zoom=1' };
+        if (book.title.includes('자개장 할머니')) return { ...book, author: '이미애', cover: 'https://books.google.com/books/content?id=80knEQAAQBAJ&printsec=frontcover&img=1&zoom=1' };
+        if (book.title.includes('도서관에 간 용')) return { ...book, author: '루이 스토웰', cover: 'https://books.google.com/books/content?id=M8o9EAAAQBAJ&printsec=frontcover&img=1&zoom=1' };
+        if (book.title.includes('마법의 숲')) return { ...book, author: '에니드 블라이턴', cover: 'https://books.google.com/books/content?id=XwknEQAAQBAJ&printsec=frontcover&img=1&zoom=1' };
       }
       return book;
     });
 
-    // Check if anything actually changed to avoid infinite loop
     const hasChanged = JSON.stringify(updatedBooks) !== JSON.stringify(books);
     if (hasChanged) {
       setBooks(updatedBooks);
